@@ -4,6 +4,10 @@
     color: var(--text-color) !important;
 }
 
+.light > footer {
+    background-color: transparent !important;
+}
+
 .light > #footer-socialNetworks-github-svg-path{
     fill: none;
 }
@@ -48,4 +52,44 @@ body.dark #moon {
 
 body:not(.dark) #sun {
     display: none;
+}
+
+/* floating engineering objects */
+:root {
+    --bg-obj-1: #1e88e5;
+    --bg-obj-2: #00acc1;
+    --bg-obj-3: #26a69a;
+    --bg-obj-4: #29b6f6;
+    --bg-obj-5: #42a5f5;
+    --bg-obj-6: #00897b;
+}
+
+.dark {
+    --bg-obj-1: #42a5f5;
+    --bg-obj-2: #4dd0e1;
+    --bg-obj-3: #26d0c0;
+    --bg-obj-4: #4fc3f7;
+    --bg-obj-5: #64b5f6;
+    --bg-obj-6: #35c3b1;
+}
+
+#bg-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+#content, #search-content, footer {
+    position: relative;
+    z-index: 1;
+    background-color: transparent !important;
+}
+
+@supports (background-color: color-mix(in srgb, black 1%, transparent)) {
+    body {
+        background-color: color-mix(in srgb, var(--background-color) 88%, transparent) !important;
+    }
 }
