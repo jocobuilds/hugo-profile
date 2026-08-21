@@ -26,18 +26,27 @@
 {{ $showNavBarOnScrollUp := .Site.Params.navbar.stickyNavBar.showOnScrollUp | default false }}
 <script>
     var prevScrollPos = window.pageYOffset;
+    var mobileMenuOpen = false;
+    document.addEventListener("DOMContentLoaded", function () {
+        let navbarContent = document.getElementById("navbarContent");
+        let profileHeader = document.getElementById("profileHeader");
+        navbarContent.addEventListener("show.bs.collapse", function () {
+            mobileMenuOpen = true;
+            profileHeader.classList.add("showHeaderOnTop");
+        });
+        navbarContent.addEventListener("hidden.bs.collapse", function () {
+            mobileMenuOpen = false;
+        });
+    });
     window.addEventListener("scroll", function showHeaderOnScroll() {
         let profileHeaderElem = document.getElementById("profileHeader");
         let currentScrollPos = window.pageYOffset;
         let resetHeaderStyle = false;
         let showNavBarOnScrollUp = {{ $showNavBarOnScrollUp }};
         let showNavBar = showNavBarOnScrollUp ? prevScrollPos > currentScrollPos : currentScrollPos > 0;
-        if (showNavBar) {
+        if (showNavBar || mobileMenuOpen) {
             profileHeaderElem.classList.add("showHeaderOnTop");
         } else {
-            resetHeaderStyle = true;
-        }
-        if(currentScrollPos === 0) {
             resetHeaderStyle = true;
         }
         if(resetHeaderStyle) {
