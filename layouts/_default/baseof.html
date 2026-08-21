@@ -19,6 +19,8 @@
   <!-- javascripts -->
   <!-- <script src="/js/jquery-3.6.0.min.js"></script> -->
 
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
   {{- partial "sections/header.html" . -}}
   <div id="content">
     {{- block "main" . }}{{- end }}
@@ -30,6 +32,8 @@
   {{- else -}}
   <script src="{{ (printf "%sbootstrap-5/js/bootstrap.bundle.min.js" (.Site.Params.staticPath | default "")) | relURL }}"></script>
   {{- end -}}
+
+  <script defer src="{{ (printf "%sjs/background.js" (.Site.Params.staticPath | default "")) | relURL }}"></script>
 
   {{- partial "scripts.html" . -}}
 
