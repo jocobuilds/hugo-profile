@@ -216,4 +216,33 @@
             </div>
         </div>
     </nav>
+    <script>
+        document.getElementById("navbarContent").addEventListener("click", function (event) {
+            let link = event.target.closest("a[href*=\"#\"]");
+            if (!link) {
+                return;
+            }
+            let url = new URL(link.href);
+            if (url.pathname !== location.pathname || !url.hash) {
+                return;
+            }
+            let target = document.querySelector(url.hash);
+            if (!target) {
+                return;
+            }
+            let collapse = bootstrap.Collapse.getInstance(this);
+            if (collapse && this.classList.contains("show")) {
+                event.preventDefault();
+                this.style.transition = "none";
+                collapse.hide();
+                requestAnimationFrame(() => {
+                    this.style.transition = "";
+                    let header = document.getElementById("profileHeader");
+                    let offset = (header ? header.offsetHeight : 0) + 16;
+                    target.style.scrollMarginTop = offset + "px";
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
+        });
+    </script>
 </header>

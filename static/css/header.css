@@ -10,6 +10,10 @@ header {
     position: sticky;
 }
 
+section[id] {
+    scroll-margin-top: 96px;
+}
+
 header .navbar .navbar-nav a {
     color: var(--text-color) !important;
 }
