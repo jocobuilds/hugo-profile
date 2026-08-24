@@ -29,39 +29,68 @@
   const COUNT = window.innerWidth < 768 ? 8 : 14;
   const objects = [];
 
-  function drawGear(x, y, r, rot, color, alpha) {
-    const teeth = 8;
+  function drawGear(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, rot = o.rot;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
+    drawGearShape(r);
+    ctx.restore();
+  }
+
+  function drawGearPair(o, color, alpha) {
+    const R = o.r, r = o.mesh.r;
+    const c = R + r - GEAR_TOOTH_DEPTH;
+    const sx = o.x + Math.cos(o.dir) * c;
+    const sy = o.y + Math.sin(o.dir) * c;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
-    ctx.lineWidth = Math.max(1, r * 0.06);
-    const inner = r * 0.78;
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    ctx.rotate(o.rot);
+    drawGearShape(R);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(-(R / r) * o.rot);
+    drawGearShape(r);
+    ctx.restore();
+  }
+
+  const GEAR_TOOTH_DEPTH = 14;
+  const GEAR_TOOTH_PITCH = 45;
+  const GEAR_LINE = 2;
+
+  function drawGearShape(r) {
+    const teeth = Math.max(6, Math.round((2 * Math.PI * r) / GEAR_TOOTH_PITCH));
+    const p = Math.PI * 2 / teeth;
+    ctx.lineWidth = GEAR_LINE;
+    const inner = r - GEAR_TOOTH_DEPTH;
     ctx.beginPath();
-    ctx.moveTo(Math.cos(0) * r, Math.sin(0) * r);
     for (let i = 0; i < teeth; i++) {
-      const a0 = (i / teeth) * Math.PI * 2;
-      const a1 = ((i + 0.35) / teeth) * Math.PI * 2;
-      const a2 = ((i + 0.5) / teeth) * Math.PI * 2;
-      const a3 = ((i + 0.85) / teeth) * Math.PI * 2;
-      ctx.lineTo(Math.cos(a0) * r, Math.sin(a0) * r);
-      ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
-      ctx.lineTo(Math.cos(a2) * inner, Math.sin(a2) * inner);
-      ctx.lineTo(Math.cos(a3) * inner, Math.sin(a3) * inner);
+      const t0 = i * p;
+      const t1 = (i + 0.5) * p;
+      const t2 = (i + 1) * p;
+      if (i === 0) ctx.moveTo(Math.cos(t0) * r, Math.sin(t0) * r);
+      ctx.lineTo(Math.cos(t1) * r, Math.sin(t1) * r);
+      ctx.lineTo(Math.cos(t1) * inner, Math.sin(t1) * inner);
+      ctx.lineTo(Math.cos(t2) * inner, Math.sin(t2) * inner);
+      ctx.lineTo(Math.cos(t2) * r, Math.sin(t2) * r);
     }
     ctx.closePath();
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2);
+    ctx.arc(0, 0, inner * 0.8, 0, Math.PI * 2);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(0, 0, r * 0.18, 0, Math.PI * 2);
+    ctx.arc(0, 0, Math.max(3, inner * 0.3), 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
   }
 
-  function drawNut(x, y, r, rot, color, alpha) {
+  function drawNut(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, rot = o.rot;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
@@ -82,7 +111,8 @@
     ctx.restore();
   }
 
-  function drawResistor(x, y, r, rot, color, alpha) {
+  function drawResistor(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, rot = o.rot;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
@@ -104,7 +134,8 @@
     ctx.restore();
   }
 
-  function drawWave(x, y, r, rot, color, alpha, phase) {
+  function drawWave(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, phase = o.phase;
     ctx.save();
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
@@ -120,7 +151,8 @@
     ctx.restore();
   }
 
-  function drawSpring(x, y, r, rot, color, alpha) {
+  function drawSpring(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, rot = o.rot;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
@@ -139,7 +171,8 @@
     ctx.restore();
   }
 
-  function drawCircuit(x, y, r, rot, color, alpha) {
+  function drawCircuit(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r, rot = o.rot;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
@@ -166,7 +199,7 @@
     ctx.restore();
   }
 
-  const drawings = [drawGear, drawNut, drawResistor, drawWave, drawSpring, drawCircuit];
+  const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit];
   const hueVars = ['--bg-obj-1', '--bg-obj-2', '--bg-obj-3', '--bg-obj-4', '--bg-obj-5', '--bg-obj-6'];
 
   function currentColor(varName) {
@@ -174,12 +207,17 @@
   }
 
   for (let i = 0; i < COUNT; i++) {
+    const type = drawings[i % drawings.length];
+    const pair = type === drawGearPair;
+    const bigR = rand(18, 55) * (pair ? 3.5 : 1);
     objects.push({
-      type: drawings[i % drawings.length],
+      type,
       hue: hueVars[i % hueVars.length],
+      ...(pair ? { dir: rand(0, Math.PI * 2), mesh: { r: bigR * rand(0.55, 0.75) } } : {}),
+      m: pair ? bigR * 3 : 80,
       x: rand(0, window.innerWidth),
       y: rand(0, window.innerHeight),
-      r: rand(18, 55),
+      r: bigR,
       rot: rand(0, Math.PI * 2),
       vr: rand(-0.02, 0.02),
       vx: rand(-0.8, 0.8),
@@ -208,13 +246,13 @@
         o.y += o.vy;
         o.rot += o.vr;
         o.phase += 0.08;
-        if (o.x < -80) o.x = W + 80;
-        if (o.x > W + 80) o.x = -80;
-        if (o.y < -80) o.y = H + 80;
-        if (o.y > H + 80) o.y = -80;
+        if (o.x < -o.m) o.x = W + o.m;
+        if (o.x > W + o.m) o.x = -o.m;
+        if (o.y < -o.m) o.y = H + o.m;
+        if (o.y > H + o.m) o.y = -o.m;
         const alpha = baseAlpha + 0.08 * Math.sin(o.phase * o.tw);
         const color = currentColor(o.hue);
-        o.type(o.x, o.y, o.r, o.rot, color, alpha, o.phase);
+        o.type(o, color, alpha);
       }
       ctx.globalAlpha = 1;
     }
