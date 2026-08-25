@@ -68,16 +68,18 @@
     const p = Math.PI * 2 / teeth;
     ctx.lineWidth = GEAR_LINE;
     const inner = r - GEAR_TOOTH_DEPTH;
+    const tipHalf = 0.18 * p;
+    const baseHalf = 0.30 * p;
     ctx.beginPath();
     for (let i = 0; i < teeth; i++) {
-      const t0 = i * p;
-      const t1 = (i + 0.5) * p;
-      const t2 = (i + 1) * p;
-      if (i === 0) ctx.moveTo(Math.cos(t0) * r, Math.sin(t0) * r);
-      ctx.lineTo(Math.cos(t1) * r, Math.sin(t1) * r);
-      ctx.lineTo(Math.cos(t1) * inner, Math.sin(t1) * inner);
-      ctx.lineTo(Math.cos(t2) * inner, Math.sin(t2) * inner);
-      ctx.lineTo(Math.cos(t2) * r, Math.sin(t2) * r);
+      const c = i * p + p / 2;
+      const tl = c - tipHalf, tr = c + tipHalf;
+      const bl = c - baseHalf, br = c + baseHalf;
+      if (i === 0) ctx.moveTo(Math.cos(bl) * inner, Math.sin(bl) * inner);
+      else ctx.lineTo(Math.cos(bl) * inner, Math.sin(bl) * inner);
+      ctx.lineTo(Math.cos(tl) * r, Math.sin(tl) * r);
+      ctx.lineTo(Math.cos(tr) * r, Math.sin(tr) * r);
+      ctx.lineTo(Math.cos(br) * inner, Math.sin(br) * inner);
     }
     ctx.closePath();
     ctx.stroke();
