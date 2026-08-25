@@ -50,26 +50,30 @@
     ctx.save();
     ctx.translate(o.x, o.y);
     ctx.rotate(o.rot);
-    drawGearShape(R);
+    drawGearShape(R, o.mesh.teethL);
     ctx.restore();
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.rotate(-(R / r) * o.rot);
-    drawGearShape(r);
+    ctx.rotate(o.mesh.phase - o.mesh.k * o.rot);
+    drawGearShape(r, o.mesh.teethS);
     ctx.restore();
   }
 
   const GEAR_TOOTH_DEPTH = 14;
-  const GEAR_TOOTH_PITCH = 45;
+  const GEAR_TOOTH_TIP = 12;
+  const GEAR_TOOTH_BASE = 24;
+  const GEAR_TOOTH_GAP = GEAR_TOOTH_TIP;
+  const GEAR_RING_GAP = 10;
   const GEAR_LINE = 2;
 
-  function drawGearShape(r) {
-    const teeth = Math.max(6, Math.round((2 * Math.PI * r) / GEAR_TOOTH_PITCH));
+  function drawGearShape(r, teeth) {
+    const pitch = GEAR_TOOTH_BASE + GEAR_TOOTH_GAP;
+    teeth = teeth || Math.max(3, Math.round((2 * Math.PI * r) / pitch));
     const p = Math.PI * 2 / teeth;
     ctx.lineWidth = GEAR_LINE;
     const inner = r - GEAR_TOOTH_DEPTH;
-    const tipHalf = 0.18 * p;
-    const baseHalf = 0.30 * p;
+    const tipHalf = GEAR_TOOTH_TIP / (2 * r);
+    const baseHalf = GEAR_TOOTH_BASE / (2 * r);
     ctx.beginPath();
     for (let i = 0; i < teeth; i++) {
       const c = i * p + p / 2;
@@ -83,11 +87,12 @@
     }
     ctx.closePath();
     ctx.stroke();
+    const ring = Math.max(0, inner - GEAR_RING_GAP);
     ctx.beginPath();
-    ctx.arc(0, 0, inner * 0.8, 0, Math.PI * 2);
+    ctx.arc(0, 0, ring, 0, Math.PI * 2);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(0, 0, Math.max(3, inner * 0.3), 0, Math.PI * 2);
+    ctx.arc(0, 0, Math.max(3, Math.min(inner * 0.3, ring * 0.75)), 0, Math.PI * 2);
     ctx.stroke();
   }
 
@@ -211,11 +216,27 @@
   for (let i = 0; i < COUNT; i++) {
     const type = drawings[i % drawings.length];
     const pair = type === drawGearPair;
-    const bigR = rand(18, 55) * (pair ? 3.5 : 1);
+    const bigR = rand(28, 55) * (pair ? 3.5 : 1);
+    const dir = pair ? rand(0, Math.PI * 2) : 0;
+    let mesh;
+    if (pair) {
+      const k = pick([2, 3]);
+      const teethL0 = Math.max(3, Math.round((2 * Math.PI * bigR) / (GEAR_TOOTH_BASE + GEAR_TOOTH_GAP)));
+      const teethL = k * Math.max(1, Math.round(teethL0 / k));
+      const teethS = teethL / k;
+      mesh = {
+        r: GEAR_TOOTH_DEPTH / 2 + (bigR - GEAR_TOOTH_DEPTH / 2) / k,
+        k,
+        teethL,
+        teethS,
+        phase: dir + Math.PI - (Math.PI - dir * teethL) / teethS
+      };
+    }
     objects.push({
       type,
       hue: hueVars[i % hueVars.length],
-      ...(pair ? { dir: rand(0, Math.PI * 2), mesh: { r: bigR * rand(0.55, 0.75) } } : {}),
+      dir,
+      ...(pair ? { mesh } : {}),
       m: pair ? bigR * 3 : 80,
       x: rand(0, window.innerWidth),
       y: rand(0, window.innerHeight),
