@@ -3,7 +3,9 @@
 
   const canvas = document.getElementById('bg-canvas');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
+  const off = document.createElement('canvas');
+  const offCtx = off.getContext('2d');
 
   let W = 0, H = 0, dpr = 1;
 
@@ -15,7 +17,10 @@
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
     canvas.style.height = H + 'px';
+    off.width = W * dpr;
+    off.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   function rand(min, max) { return min + Math.random() * (max - min); }
@@ -282,7 +287,13 @@
         if (o.y > H + o.m) o.y = -o.m;
         const alpha = baseAlpha + 0.08 * Math.sin(o.phase * o.tw);
         const color = currentColor(o.hue);
-        o.type(o, color, alpha);
+        offCtx.clearRect(0, 0, W, H);
+        const prev = ctx;
+        ctx = offCtx;
+        o.type(o, color, 1);
+        ctx = prev;
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(off, 0, 0, W, H);
       }
       ctx.globalAlpha = 1;
     }
