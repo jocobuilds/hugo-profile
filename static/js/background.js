@@ -207,6 +207,13 @@
   }
 
   const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit];
+  const others = drawings.filter(t => t !== drawGearPair);
+  const typePool = [drawGearPair];
+  for (let j = 1; j < COUNT; j++) typePool.push(others[(j - 1) % others.length]);
+  for (let j = typePool.length - 1; j > 0; j--) {
+    const p = Math.floor(Math.random() * (j + 1));
+    [typePool[j], typePool[p]] = [typePool[p], typePool[j]];
+  }
   const hueVars = ['--bg-obj-1', '--bg-obj-2', '--bg-obj-3', '--bg-obj-4', '--bg-obj-5', '--bg-obj-6'];
 
   function currentColor(varName) {
@@ -214,7 +221,7 @@
   }
 
   for (let i = 0; i < COUNT; i++) {
-    const type = drawings[i % drawings.length];
+    const type = typePool[i];
     const pair = type === drawGearPair;
     const bigR = rand(28, 55) * (pair ? 3.5 : 1);
     const dir = pair ? rand(0, Math.PI * 2) : 0;
