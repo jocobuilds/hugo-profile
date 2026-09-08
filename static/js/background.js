@@ -33,7 +33,10 @@
 
   const COUNT = window.innerWidth < 768 ? 8 : 14;
   const objects = [];
-
+  function motionOf(type) {
+    if (type === drawFish) return 'swim';
+    return 'free';
+  }
   function drawGear(o, color, alpha) {
     const x = o.x, y = o.y, r = o.r, rot = o.rot;
     ctx.strokeStyle = color;
@@ -211,7 +214,39 @@
     ctx.restore();
   }
 
-  const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit];
+  function drawFish(o, color, alpha) {
+    const x = o.x, y = o.y, r = o.r;
+    const d = o.fdir;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(d, 1);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = Math.max(1, r * 0.07);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.62, r * 0.36, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    const wig = Math.sin(o.phase * 2) * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.6, 0);
+    ctx.lineTo(-r + wig * r, -r * 0.38);
+    ctx.lineTo(-r + wig * r, r * 0.38);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, -r * 0.36);
+    ctx.quadraticCurveTo(0, -r * 0.72, r * 0.28, -r * 0.36);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(r * 0.38, -r * 0.08, Math.max(1.2, r * 0.055), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit, drawFish];
   const others = drawings.filter(t => t !== drawGearPair);
   const typePool = [drawGearPair];
   for (let j = 1; j < COUNT; j++) typePool.push(others[(j - 1) % others.length]);
@@ -244,19 +279,22 @@
         phase: dir + Math.PI - (Math.PI - dir * teethL) / teethS
       };
     }
+    const motion = motionOf(type);
     objects.push({
       type,
       hue: hueVars[i % hueVars.length],
       dir,
       ...(pair ? { mesh } : {}),
+      motion,
       m: pair ? bigR * 3 : 80,
       x: rand(0, window.innerWidth),
       y: rand(0, window.innerHeight),
       r: bigR,
       rot: rand(0, Math.PI * 2),
       vr: rand(-0.02, 0.02),
-      vx: rand(-0.8, 0.8),
-      vy: rand(-0.5, 0.5),
+      fdir: Math.random() < 0.5 ? -1 : 1,
+      vx: motion === 'swim' ? (Math.random() < 0.5 ? -1 : 1) * rand(0.4, 0.9) : (motion === 'free' ? rand(-0.8, 0.8) : 0),
+      vy: motion === 'free' ? rand(-0.5, 0.5) : 0,
       phase: rand(0, Math.PI * 2),
       tw: rand(0.5, 1.5)
     });
@@ -277,14 +315,25 @@
       const dark = document.body.classList.contains('dark');
       const baseAlpha = dark ? 0.22 : 0.20;
       for (const o of objects) {
-        o.x += o.vx;
-        o.y += o.vy;
-        o.rot += o.vr;
         o.phase += 0.08;
-        if (o.x < -o.m) o.x = W + o.m;
-        if (o.x > W + o.m) o.x = -o.m;
-        if (o.y < -o.m) o.y = H + o.m;
-        if (o.y > H + o.m) o.y = -o.m;
+        if (o.motion === 'swim') {
+          o.x += o.vx;
+          o.fdir = o.vx >= 0 ? 1 : -1;
+          o.y += Math.sin(o.phase * 0.9) * 0.35;
+          if (o.x < -o.m) o.x = W + o.m;
+          if (o.x > W + o.m) o.x = -o.m;
+          const yMin = H * 0.05, yMax = H * 0.9;
+          if (o.y < yMin) o.y = H * 0.5;
+          if (o.y > yMax) o.y = H * 0.3;
+        } else {
+          o.x += o.vx;
+          o.y += o.vy;
+          o.rot += o.vr;
+          if (o.x < -o.m) o.x = W + o.m;
+          if (o.x > W + o.m) o.x = -o.m;
+          if (o.y < -o.m) o.y = H + o.m;
+          if (o.y > H + o.m) o.y = -o.m;
+        }
         const alpha = baseAlpha + 0.08 * Math.sin(o.phase * o.tw);
         const color = currentColor(o.hue);
         offCtx.clearRect(0, 0, W, H);
