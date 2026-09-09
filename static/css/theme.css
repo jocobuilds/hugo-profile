@@ -80,6 +80,10 @@ body:not(.dark) #sun {
     height: 100%;
     z-index: 0;
     pointer-events: none;
+    /* Promote to its own GPU compositing layer; prevents repaint flicker on iOS Safari */
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 #content, #search-content, footer {

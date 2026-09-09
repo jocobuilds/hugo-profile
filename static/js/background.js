@@ -4,8 +4,12 @@
   const canvas = document.getElementById('bg-canvas');
   if (!canvas) return;
   let ctx = canvas.getContext('2d');
-  const off = document.createElement('canvas');
-  const offCtx = off.getContext('2d');
+  const scratch = document.createElement('canvas');
+  const scratchCtx = scratch.getContext('2d');
+  // Largest object is a gear pair (bigR up to 55*3.5 ≈ 193, second gear
+  // centered c ≈ 278 out, radius ≈ 100 → extent ≈ 380). A 760px scratch
+  // (±380) covers everything and is fixed, so it never reallocates.
+  const SCRATCH = 760;
 
   let W = 0, H = 0, dpr = 1;
 
@@ -17,10 +21,9 @@
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
     canvas.style.height = H + 'px';
-    off.width = W * dpr;
-    off.height = H * dpr;
+    scratch.width = SCRATCH * dpr;
+    scratch.height = SCRATCH * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   function rand(min, max) { return min + Math.random() * (max - min); }
@@ -336,15 +339,17 @@
         }
         const alpha = baseAlpha + 0.08 * Math.sin(o.phase * o.tw);
         const color = currentColor(o.hue);
-        offCtx.clearRect(0, 0, W, H);
+        scratchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        scratchCtx.clearRect(0, 0, SCRATCH, SCRATCH);
+        scratchCtx.translate(SCRATCH / 2 - o.x, SCRATCH / 2 - o.y);
         const prev = ctx;
-        ctx = offCtx;
+        ctx = scratchCtx;
         o.type(o, color, 1);
         ctx = prev;
         ctx.globalAlpha = alpha;
-        ctx.drawImage(off, 0, 0, W, H);
+        ctx.drawImage(scratch, o.x - SCRATCH / 2, o.y - SCRATCH / 2, SCRATCH, SCRATCH);
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
     }
     requestAnimationFrame(tick);
   }
