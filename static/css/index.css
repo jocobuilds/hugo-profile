@@ -255,15 +255,7 @@ header .navbar.animate {
     width: 100%;
 }
 
-/* experience */
-
-#experience .card .card-body a {
-    color: var(--text-link-color) !important;
-    text-decoration: none;
-    opacity: 0.9;
-}
-
-/* Education */
+/* Education and experience */
 
 #education .container > h3 {
     color: var(--text-secondary-color) !important;
@@ -310,19 +302,17 @@ header .navbar.animate {
     border: 2px solid var(--primary-color) !important;
 }
 
-#education .card .card-body .education-content a {
+#education .card .card-body a, #experience .card .card-body a {
     color: var(--text-link-color) !important;
     text-decoration: none;
     opacity: 0.9;
 }
 
-#education .card .card-body > a h6, #experience .card .card-body > a h5 {
+#education .card .card-body a:not(.btn), #experience .card .card-body a:not(.btn) {
     display: inline-block;
-    text-decoration: none;
-    color: var(--text-link-color) !important;
 }
 
-#education .card .card-body > a h6::after, #experience .card .card-body > a h5::after {
+#education .card .card-body a:not(.btn)::after, #experience .card .card-body a:not(.btn)::after {
     content: "";
     display: block;
     width: 0px;
@@ -333,7 +323,7 @@ header .navbar.animate {
     opacity: 0.5;
 }
 
-#education .card .card-body > a h6:hover::after, #education .card .card-body > a h6:focus::after, #education .card .card-body > a h6:active::after, #experience .card .card-body > a h5:hover::after, #experience .card .card-body > a h5:focus::after, #experience .card .card-body > a h5:active::after {
+#education .card .card-body a:not(.btn):hover::after, #education .card .card-body a:not(.btn):focus::after, #education .card .card-body a:not(.btn):active::after, #experience .card .card-body a:not(.btn):hover::after, #experience .card .card-body a:not(.btn):focus::after, #experience .card .card-body a:not(.btn):active::after {
     width: 100%;
 }
 
