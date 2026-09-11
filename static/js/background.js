@@ -4,16 +4,16 @@
   const canvas = document.getElementById('bg-canvas');
   if (!canvas) return;
   let ctx = canvas.getContext('2d');
+  // Scratch is shared only by the two continuously animated live types
+  // (fish, wave); static objects use pre-rendered full-opacity sprites.
   const scratch = document.createElement('canvas');
   const scratchCtx = scratch.getContext('2d');
-  // Largest object is a gear pair (bigR up to 55*3.5 ≈ 193, second gear
-  // centered c ≈ 278 out, radius ≈ 100 → extent ≈ 380). A 760px scratch
-  // (±380) covers everything and is fixed, so it never reallocates.
-  const SCRATCH = 760;
 
   let W = 0, H = 0, dpr = 1;
 
   function resize() {
+    // Cap dpr at 1 on small screens: 14 sprite blits at dpr=2 overdraw
+    // the viewport several times per frame and overflow the frame budget.
     const maxDpr = window.innerWidth < 768 ? 1 : 2;
     dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
     W = window.innerWidth;
@@ -22,8 +22,6 @@
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
     canvas.style.height = H + 'px';
-    scratch.width = SCRATCH * dpr;
-    scratch.height = SCRATCH * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
@@ -35,37 +33,38 @@
     return v || fallback;
   }
 
-  const COUNT = window.innerWidth < 768 ? 8 : 14;
-  const objects = [];
   function motionOf(type) {
     if (type === drawFish) return 'swim';
     return 'free';
   }
+
   function drawGear(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, rot = o.rot;
+    const rot = o.rot;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.save();
-    ctx.translate(x, y);
     ctx.rotate(rot);
-    drawGearShape(r);
+    drawGearShape(o.r);
     ctx.restore();
   }
 
   function drawGearPair(o, color, alpha) {
     const R = o.r, r = o.mesh.r;
     const c = R + r - GEAR_TOOTH_DEPTH;
-    const sx = o.x + Math.cos(o.dir) * c;
-    const sy = o.y + Math.sin(o.dir) * c;
+    const theta = o.dir;
+    const dx = Math.cos(theta) * c;
+    const dy = Math.sin(theta) * c;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
+    // Large gear: use o.rot (0 during sprite build → base orientation).
     ctx.save();
-    ctx.translate(o.x, o.y);
     ctx.rotate(o.rot);
     drawGearShape(R, o.mesh.teethL);
     ctx.restore();
+    // Small gear: counter-rotation driven by o.rot so it stays live during
+    // blit-time animation.
     ctx.save();
-    ctx.translate(sx, sy);
+    ctx.translate(dx, dy);
     ctx.rotate(o.mesh.phase - o.mesh.k * o.rot);
     drawGearShape(r, o.mesh.teethS);
     ctx.restore();
@@ -109,10 +108,7 @@
   }
 
   function drawNut(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, rot = o.rot;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
+    const r = o.r;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.lineWidth = Math.max(1, r * 0.08);
@@ -127,14 +123,10 @@
     ctx.beginPath();
     ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
   }
 
   function drawResistor(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, rot = o.rot;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
+    const r = o.r;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.lineWidth = Math.max(1, r * 0.08);
@@ -150,31 +142,25 @@
     }
     ctx.lineTo(r * 0.8, 0);
     ctx.stroke();
-    ctx.restore();
   }
 
   function drawWave(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, phase = o.phase;
-    ctx.save();
+    const r = o.r, phase = o.phase;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.lineWidth = Math.max(1, r * 0.05);
     ctx.beginPath();
     for (let i = 0; i <= 40; i++) {
       const t = i / 40;
-      const px = x - r + t * 2 * r;
-      const py = y + Math.sin(t * Math.PI * 4 + phase) * r * 0.35;
+      const px = -r + t * 2 * r;
+      const py = Math.sin(t * Math.PI * 4 + phase) * r * 0.35;
       if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.stroke();
-    ctx.restore();
   }
 
   function drawSpring(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, rot = o.rot;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
+    const r = o.r;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.lineWidth = Math.max(1, r * 0.08);
@@ -182,19 +168,15 @@
     const coils = 4;
     for (let i = 0; i <= coils * 12; i++) {
       const t = i / (coils * 12);
-      const px = x - r * 0.6 + t * r * 1.2;
-      const py = y + Math.cos(t * coils * Math.PI * 2) * r * 0.4;
+      const px = -r * 0.6 + t * r * 1.2;
+      const py = Math.cos(t * coils * Math.PI * 2) * r * 0.4;
       if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.stroke();
-    ctx.restore();
   }
 
   function drawCircuit(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r, rot = o.rot;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
+    const r = o.r;
     ctx.strokeStyle = color;
     ctx.globalAlpha = alpha;
     ctx.lineWidth = Math.max(1, r * 0.06);
@@ -215,18 +197,16 @@
     node(-r, 0);
     node(r * 0.2, -r * 0.45);
     node(r, 0);
-    ctx.restore();
   }
 
   function drawFish(o, color, alpha) {
-    const x = o.x, y = o.y, r = o.r;
+    const r = o.r;
     const d = o.fdir;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(d, 1);
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.scale(d, 1);
     ctx.lineWidth = Math.max(1, r * 0.07);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -250,6 +230,8 @@
     ctx.restore();
   }
 
+  const COUNT = window.innerWidth < 768 ? 8 : 14;
+  const objects = [];
   const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit, drawFish];
   const others = drawings.filter(t => t !== drawGearPair);
   const typePool = [drawGearPair];
@@ -263,6 +245,8 @@
   function currentColor(varName) {
     return cssColor(varName, '#29b6f6');
   }
+
+  const STATIC_BY_TYPE = new Set([drawGear, drawGearPair, drawNut, drawResistor, drawSpring, drawCircuit]);
 
   for (let i = 0; i < COUNT; i++) {
     const type = typePool[i];
@@ -295,13 +279,73 @@
       y: rand(0, window.innerHeight),
       r: bigR,
       rot: rand(0, Math.PI * 2),
-      vr: rand(-0.02, 0.02),
+      vr: STATIC_BY_TYPE.has(type) ? rand(-0.02, 0.02) : 0,
       fdir: Math.random() < 0.5 ? -1 : 1,
-      vx: motion === 'swim' ? (Math.random() < 0.5 ? -1 : 1) * rand(0.4, 0.9) : (motion === 'free' ? rand(-0.8, 0.8) : 0),
+      vx: motion === 'swim' ? (Math.random() < 0.5 ? -1 : 1) * rand(0.4, 0.9) : rand(-0.8, 0.8),
       vy: motion === 'free' ? rand(-0.5, 0.5) : 0,
       phase: rand(0, Math.PI * 2),
       tw: rand(0.5, 1.5)
     });
+  }
+
+  // Pre-render each static object once (at its starting rotation) into a
+  // full-opacity sprite. Per-frame cost becomes a single GPU blit instead
+  // of a scratch clear + vector draw, which is what overflowed the frame
+  // budget.
+  function buildSprites() {
+    for (const o of objects) {
+      if (!STATIC_BY_TYPE.has(o.type)) continue;
+      if (o.type === drawGearPair) {
+        // Two independent sprites: big gear centered, small gear centered.
+        // Each is rotated at blit time (big by o.rot, small by
+        // o.mesh.phase - o.mesh.k*o.rot) so the mesh counter-rotation works.
+        const color = currentColor(o.hue);
+        const R = o.r, r = o.mesh.r;
+        function makeGear(extent, draw) {
+          const S = Math.ceil(extent * 2);
+          const c = document.createElement('canvas');
+          c.width = c.height = Math.max(2, S * dpr);
+          const g = c.getContext('2d');
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.translate(S / 2, S / 2);
+          const prev = ctx;
+          ctx = g;
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 1;
+          draw();
+          ctx = prev;
+          return { c, S };
+        }
+        o.spriteBig = makeGear(R, () => drawGearShape(R, o.mesh.teethL));
+        o.spriteSmall = makeGear(r, () => drawGearShape(r, o.mesh.teethS));
+        // Composite canvas: both gears drawn at full opacity overlap
+        // uniformly; the main canvas then blits it once at target alpha.
+        const c = R + r - GEAR_TOOTH_DEPTH;
+        const extent = (Math.max(R, c + r) + r) * 1.1;
+        const S = Math.ceil(extent * 2);
+        const pc = document.createElement('canvas');
+        pc.width = pc.height = Math.max(2, S * dpr);
+        o.pairCv = { c: pc, g: pc.getContext('2d'), S, c0: c };
+        o.sprite = null;
+        continue;
+      }
+      const extent = o.r * 1.3;
+      const S = Math.ceil(extent * 2);
+      const c = document.createElement('canvas');
+      c.width = Math.max(2, S * dpr);
+      c.height = Math.max(2, S * dpr);
+      const g = c.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.translate(S / 2, S / 2);
+      const savedRot = o.rot;
+      o.rot = 0;
+      const prev = ctx;
+      ctx = g;
+      o.type(o, currentColor(o.hue), 1);
+      ctx = prev;
+      o.rot = savedRot;
+      o.sprite = { c, S };
+    }
   }
 
   let running = true;
@@ -309,6 +353,19 @@
     running = !document.hidden;
     if (running) requestAnimationFrame(tick);
   });
+
+  let lastDark = null;
+  function syncTheme() {
+    const dark = document.body.classList.contains('dark');
+    if (dark === lastDark) return;
+    lastDark = dark;
+    buildSprites();
+  }
+  if (window.matchMedia) {
+    const mo = new MutationObserver(syncTheme);
+    mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('themechange', syncTheme);
+  }
 
   let last = 0;
   function tick(t) {
@@ -326,9 +383,9 @@
           o.y += Math.sin(o.phase * 0.9) * 0.35;
           if (o.x < -o.m) o.x = W + o.m;
           if (o.x > W + o.m) o.x = -o.m;
-          const yMin = H * 0.05, yMax = H * 0.9;
-          if (o.y < yMin) o.y = H * 0.5;
-          if (o.y > yMax) o.y = H * 0.3;
+          const yMin = H * 0.08, yMax = H * 0.88;
+          if (o.y < yMin) o.y = yMin + 2;
+          if (o.y > yMax) o.y = yMax - 2;
         } else {
           o.x += o.vx;
           o.y += o.vy;
@@ -339,23 +396,77 @@
           if (o.y > H + o.m) o.y = -o.m;
         }
         const alpha = baseAlpha + 0.08 * Math.sin(o.phase * o.tw);
-        const color = currentColor(o.hue);
-        scratchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        scratchCtx.clearRect(0, 0, SCRATCH, SCRATCH);
-        scratchCtx.translate(SCRATCH / 2 - o.x, SCRATCH / 2 - o.y);
-        const prev = ctx;
-        ctx = scratchCtx;
-        o.type(o, color, 1);
-        ctx = prev;
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(scratch, o.x - SCRATCH / 2, o.y - SCRATCH / 2, SCRATCH, SCRATCH);
-        ctx.globalAlpha = 1;
+        if (o.spriteBig && o.pairCv) {
+          // Gear pair: draw both gears (each rotated) into a shared
+          // composite at full opacity so their overlapping teeth stay
+          // uniform, then blit that composite once at the target alpha.
+          const pc = o.pairCv;
+          const g = pc.g;
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.clearRect(0, 0, pc.c.width, pc.c.height);
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.translate(pc.S / 2, pc.S / 2);
+          g.globalAlpha = 1;
+          const sB = o.spriteBig, sS = o.spriteSmall;
+          g.save();
+          g.rotate(o.rot);
+          g.drawImage(sB.c, 0, 0, sB.c.width, sB.c.height, -sB.S / 2, -sB.S / 2, sB.S, sB.S);
+          g.restore();
+          g.save();
+          g.translate(Math.cos(o.dir) * pc.c0, Math.sin(o.dir) * pc.c0);
+          g.rotate(o.mesh.phase - o.mesh.k * o.rot);
+          g.drawImage(sS.c, 0, 0, sS.c.width, sS.c.height, -sS.S / 2, -sS.S / 2, sS.S, sS.S);
+          g.restore();
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(pc.c, 0, 0, pc.c.width, pc.c.height, o.x - pc.S / 2, o.y - pc.S / 2, pc.S, pc.S);
+        } else if (o.sprite) {
+          const sp = o.sprite;
+          ctx.globalAlpha = alpha;
+          // Rotate at blit time for single-gear sprites. Skip for the pair:
+          // the small gear must counter-rotate (phase - k*rot), which a
+          // single sprite rotation can't express. The pair still drifts
+          // via vx/vy.
+          if (o.rot !== 0 && o.type !== drawGearPair) {
+            ctx.save();
+            ctx.translate(o.x, o.y);
+            ctx.rotate(o.rot);
+            ctx.drawImage(sp.c, 0, 0, sp.c.width, sp.c.height, -sp.S / 2, -sp.S / 2, sp.S, sp.S);
+            ctx.restore();
+          } else {
+            ctx.drawImage(sp.c, 0, 0, sp.c.width, sp.c.height, o.x - sp.S / 2, o.y - sp.S / 2, sp.S, sp.S);
+          }
+        } else {
+          const liveW = (o.type === drawWave ? o.r : o.r * 1.5) * 2;
+          const liveH = (o.type === drawWave ? o.r * 0.8 : o.r * 1.5) * 2 + 10;
+          const wPx = Math.ceil(liveW * dpr);
+          const hPx = Math.ceil(liveH * dpr);
+          if (scratch.width !== wPx || scratch.height !== hPx) {
+            scratch.width = wPx;
+            scratch.height = hPx;
+          } else {
+            scratchCtx.clearRect(0, 0, wPx, hPx);
+          }
+          scratchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          scratchCtx.clearRect(0, 0, liveW, liveH);
+          scratchCtx.translate(liveW / 2, liveH / 2);
+          const prev = ctx;
+          ctx = scratchCtx;
+          o.type(o, currentColor(o.hue), 1);
+          ctx = prev;
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(scratch, 0, 0, wPx, hPx, o.x - liveW / 2, o.y - liveH / 2, liveW, liveH);
+        }
       }
+      ctx.globalAlpha = 1;
     }
     requestAnimationFrame(tick);
   }
 
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', () => {
+    resize();
+    buildSprites();
+  });
   resize();
+  buildSprites();
   requestAnimationFrame(tick);
 })();
