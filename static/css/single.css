@@ -57,6 +57,22 @@
     opacity: 0.9;
 }
 
+#single .page-content h1 {
+    font-size: 1.8rem;
+}
+
+#single .page-content h2 {
+    font-size: 1.55rem;
+}
+
+#single .page-content h3 {
+    font-size: 1.4rem;
+}
+
+#single .page-content h4 {
+    font-size: 1.2rem;
+}
+
 #single .page-content blockquote {
     padding: 20px 30px;
     border-left: 6px solid var(--primary-color) !important;

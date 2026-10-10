@@ -23,6 +23,22 @@
     background-color: var(--secondary-color) !important;
 }
 
+#list-page .card-text h1 {
+    font-size: 1.8rem;
+}
+
+#list-page .card-text h2 {
+    font-size: 1.55rem;
+}
+
+#list-page .card-text h3 {
+    font-size: 1.4rem;
+}
+
+#list-page .card-text h4 {
+    font-size: 1.2rem;
+}
+
 #list-page .post-footer {
     padding: .5rem 1rem;
     background-color: var(--secondary-color) !important;
