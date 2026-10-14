@@ -230,12 +230,14 @@
     ctx.restore();
   }
 
-  const COUNT = window.innerWidth < 768 ? 8 : 14;
+  const COUNT = window.innerWidth < 768 ? 2 : 14;
   const objects = [];
   const drawings = [drawGear, drawGearPair, drawNut, drawResistor, drawWave, drawSpring, drawCircuit, drawFish];
-  const others = drawings.filter(t => t !== drawGearPair);
-  const typePool = [drawGearPair];
-  for (let j = 1; j < COUNT; j++) typePool.push(others[(j - 1) % others.length]);
+  const forced = [drawGearPair, drawFish];
+  const others = drawings.filter(t => t !== drawGearPair && t !== drawFish);
+  const forcedCount = Math.min(forced.length, COUNT);
+  const typePool = forced.slice(0, forcedCount);
+  for (let j = forcedCount; j < COUNT; j++) typePool.push(others[(j - forcedCount) % others.length]);
   for (let j = typePool.length - 1; j > 0; j--) {
     const p = Math.floor(Math.random() * (j + 1));
     [typePool[j], typePool[p]] = [typePool[p], typePool[j]];
