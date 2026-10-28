@@ -41,6 +41,80 @@
   <section id="search-content" class="py-2">
     <div class="container" id="search-results"></div>
   </section>
+
+  {{ if .Store.Get "hasMermaid" }}
+  <style>
+    /* Beat theme's `#single .page-content pre { background-color: ... !important }`
+       by matching its specificity and adding the .mermaid class. */
+    #single .page-content pre.mermaid {
+      background-color: transparent !important;
+      color: inherit !important;
+      padding: 0 !important;
+      max-height: none !important;
+      border-radius: 0 !important;
+      margin-bottom: 1em;
+      text-align: center;
+    }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs';
+
+    const sourceHTML = Array.from(document.querySelectorAll('pre.mermaid')).map(n => n.innerHTML);
+
+    function buildOptions() {
+      const cs = getComputedStyle(document.body);
+      const c = (name) => cs.getPropertyValue(name).trim();
+      const text = c('--text-color') || '#343a40';
+      const accent = c('--primary-color') || '#007bff';
+      const fill = c('--secondary-background-color') || '#ffffff';
+      const bg = c('--background-color') || '#ffffff';
+      return {
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          fontFamily: c('font-family') || 'system-ui, sans-serif',
+          fontSize: c('font-size') || '16px',
+          textColor: text,
+          primaryTextColor: text,
+          titleColor: text,
+          nodeTextColor: text,
+          secondaryTextColor: c('--text-secondary-color') || '#6c757d',
+          primaryColor: fill,
+          nodeBorder: accent,
+          lineColor: accent,
+          clusterBkg: fill,
+          clusterBorder: accent,
+          edgeLabelBackground: bg,
+          secondaryColor: c('--secondary-color') || '#f8f9fa',
+          tertiaryColor: bg,
+        },
+      };
+    }
+
+    let lastDark = null;
+
+    function render() {
+      const isDark = document.body.classList.contains('dark');
+      if (isDark !== lastDark) {
+        mermaid.initialize(buildOptions());
+        lastDark = isDark;
+      }
+      const existing = Array.from(document.querySelectorAll('pre.mermaid'));
+      if (!existing.length) return Promise.resolve();
+      const fresh = existing.map((n, i) => {
+        const f = document.createElement('pre');
+        f.className = 'mermaid';
+        f.innerHTML = sourceHTML[i];
+        n.replaceWith(f);
+        return f;
+      });
+      return mermaid.run({ nodes: fresh }).catch(() => {});
+    }
+
+    window.reinitMermaid = render;
+    render();
+  </script>
+  {{ end }}
 </body>
 
 </html>
